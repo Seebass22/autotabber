@@ -83,3 +83,32 @@ fn main() {
 fn err_fn(err: cpal::StreamError) {
     eprintln!("an error occurred on stream: {}", err);
 }
+fn autocorrelation2(signal: &[f32]) {
+    let mut original = [0f32; 3 * BUFSIZE];
+    let mut lagged = [0f32; 3 * BUFSIZE];
+    let mut res_arr = [0f32; 3 * BUFSIZE];
+    let mut res = [0f32; 3 * BUFSIZE];
+
+    // create array with original signal in middle
+    for i in 0..BUFSIZE {
+        original[BUFSIZE + i] = signal[i];
+    }
+
+    for i in 0..(BUFSIZE * 2) {
+        lagged.fill(0f32);
+        // move lagged signal
+        for j in 0..BUFSIZE {
+            lagged[i + j] = signal[j];
+        }
+
+        // sum
+        for j in 0..(BUFSIZE*3) {
+            res_arr[j] = lagged[j] * original[j];
+        }
+        res[i] = res_arr.iter().sum();
+    }
+    // println!("{:?}", res);
+    // println!("{:?}", lagged);
+    println!("{:?}", signal);
+}
+
