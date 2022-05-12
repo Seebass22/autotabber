@@ -1,16 +1,23 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use ringbuf::RingBuffer;
 
+// works with bufsize 32
+const BUFSIZE: usize = 1024;
+
 fn main() {
-    println!("Hello, world!");
     let host = cpal::default_host();
-    let input_device = host.default_input_device().expect("failed to find input device");
-    let output_device = host.default_output_device().expect("failed to find output device");
+    let input_device = host
+        .default_input_device()
+        .expect("failed to find input device");
+    let output_device = host
+        .default_output_device()
+        .expect("failed to find output device");
 
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
     // tweak this
-    let latency = 150.0;
+    let latency = 500.0;
+    // let latency = 150.0;
 
     // Create a delay in case the input and output devices aren't synced.
     let latency_frames = (latency / 1_000.0) * config.sample_rate.0 as f32;
@@ -39,11 +46,22 @@ fn main() {
         }
     };
 
+    let mut buf = Vec::<f32>::with_capacity(BUFSIZE);
     let output_data_fn = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
         let mut input_fell_behind = false;
+        let mut i = 0;
         for sample in data {
+            i += 1;
             *sample = match consumer.pop() {
-                Some(s) => s,
+                Some(s) => {
+                    buf.push(*sample);
+                    // TODO set buffer size
+                    if buf.len() == BUFSIZE {
+                        handle_buffer(&buf);
+                        buf.clear();
+                    }
+                    s
+                }
                 None => {
                     input_fell_behind = true;
                     0.0
@@ -60,8 +78,12 @@ fn main() {
         "Attempting to build both streams with f32 samples and `{:?}`.",
         config
     );
-    let input_stream = input_device.build_input_stream(&config, input_data_fn, err_fn).unwrap();
-    let output_stream = output_device.build_output_stream(&config, output_data_fn, err_fn).unwrap();
+    let input_stream = input_device
+        .build_input_stream(&config, input_data_fn, err_fn)
+        .unwrap();
+    let output_stream = output_device
+        .build_output_stream(&config, output_data_fn, err_fn)
+        .unwrap();
     println!("Successfully built streams.");
 
     // Play the streams.
@@ -83,6 +105,15 @@ fn main() {
 fn err_fn(err: cpal::StreamError) {
     eprintln!("an error occurred on stream: {}", err);
 }
+
+fn handle_buffer(buf: &[f32]) {
+    // println!("{:?}", dot_product(buf, buf));
+    // autocorrelation(buf)
+    autocorrelation2(buf);
+    // println!("{:?}", autocorrelation(buf));
+    // println!("{:?}", buf);
+}
+
 fn autocorrelation2(signal: &[f32]) {
     let mut original = [0f32; 3 * BUFSIZE];
     let mut lagged = [0f32; 3 * BUFSIZE];
