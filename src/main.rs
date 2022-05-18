@@ -1,75 +1,26 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use ringbuf::RingBuffer;
+use find_peaks::PeakFinder;
 
-// works with bufsize 32
 const BUFSIZE: usize = 1024;
+// const BUFSIZE: usize = 2048;
+// const BUFSIZE: usize = 32;
 
 fn main() {
     let host = cpal::default_host();
     let input_device = host
         .default_input_device()
         .expect("failed to find input device");
-    let output_device = host
-        .default_output_device()
-        .expect("failed to find output device");
 
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
-    // tweak this
-    let latency = 500.0;
-    // let latency = 150.0;
-
-    // Create a delay in case the input and output devices aren't synced.
-    let latency_frames = (latency / 1_000.0) * config.sample_rate.0 as f32;
-    let latency_samples = latency_frames as usize * config.channels as usize;
-
-    // The buffer to share samples
-    let ring = RingBuffer::new(latency_samples * 2);
-    let (mut producer, mut consumer) = ring.split();
-
-    // Fill the samples with 0.0 equal to the length of the delay.
-    for _ in 0..latency_samples {
-        // The ring buffer has twice as much space as necessary to add latency here,
-        // so this should never fail
-        producer.push(0.0).unwrap();
-    }
-
-    let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
-        let mut output_fell_behind = false;
-        for &sample in data {
-            if producer.push(sample).is_err() {
-                output_fell_behind = true;
-            }
-        }
-        if output_fell_behind {
-            eprintln!("output stream fell behind: try increasing latency");
-        }
-    };
-
     let mut buf = Vec::<f32>::with_capacity(BUFSIZE);
-    let output_data_fn = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-        let mut input_fell_behind = false;
-        let mut i = 0;
-        for sample in data {
-            i += 1;
-            *sample = match consumer.pop() {
-                Some(s) => {
-                    buf.push(*sample);
-                    // TODO set buffer size
-                    if buf.len() == BUFSIZE {
-                        handle_buffer(&buf);
-                        buf.clear();
-                    }
-                    s
-                }
-                None => {
-                    input_fell_behind = true;
-                    0.0
-                }
-            };
-        }
-        if input_fell_behind {
-            eprintln!("input stream fell behind: try increasing latency");
+    let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
+        for &sample in data {
+            buf.push(sample);
+            if buf.len() == BUFSIZE {
+                handle_buffer(&buf);
+                buf.clear();
+            }
         }
     };
 
@@ -81,24 +32,15 @@ fn main() {
     let input_stream = input_device
         .build_input_stream(&config, input_data_fn, err_fn)
         .unwrap();
-    let output_stream = output_device
-        .build_output_stream(&config, output_data_fn, err_fn)
-        .unwrap();
     println!("Successfully built streams.");
 
     // Play the streams.
-    println!(
-        "Starting the input and output streams with `{}` milliseconds of latency.",
-        latency
-    );
     input_stream.play().unwrap();
-    output_stream.play().unwrap();
 
     // Run for 3 seconds before closing.
     println!("Playing for 3 seconds... ");
     std::thread::sleep(std::time::Duration::from_secs(3));
     drop(input_stream);
-    drop(output_stream);
     println!("Done!");
 }
 
@@ -107,14 +49,25 @@ fn err_fn(err: cpal::StreamError) {
 }
 
 fn handle_buffer(buf: &[f32]) {
-    // println!("{:?}", dot_product(buf, buf));
-    // autocorrelation(buf)
-    autocorrelation2(buf);
-    // println!("{:?}", autocorrelation(buf));
+    let autoc = autocorrelation(buf);
+
+    // let ps = PeakFinder::new(&autoc).find_peaks();
+    // let main = ps[0].middle_position();
+    // let second = ps[1].middle_position();
+    // let res = (main as i32 - second as i32).abs();
+    // for i in 0..10 {
+    //     print!("{} ", ps[i].middle_position());
+    // }
+    // println!();
+
+    // println!("{} - {} = {}", ps[1].position);
+    // println!("{}", ps[0].right_diff);
+    // println!("{}", res);
+
     // println!("{:?}", buf);
 }
 
-fn autocorrelation2(signal: &[f32]) {
+fn autocorrelation(signal: &[f32]) -> [f32; 3*BUFSIZE] {
     let mut original = [0f32; 3 * BUFSIZE];
     let mut lagged = [0f32; 3 * BUFSIZE];
     let mut res_arr = [0f32; 3 * BUFSIZE];
@@ -133,13 +86,21 @@ fn autocorrelation2(signal: &[f32]) {
         }
 
         // sum
-        for j in 0..(BUFSIZE*3) {
+        for j in 0..(BUFSIZE * 3) {
             res_arr[j] = lagged[j] * original[j];
         }
         res[i] = res_arr.iter().sum();
     }
-    // println!("{:?}", res);
+    // let mut s = Vec::from(signal);
+    // s.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+    // println!("{:?}", s);
+    println!("{:?}", res);
+    // println!("END");
+    res
     // println!("{:?}", lagged);
-    println!("{:?}", signal);
+    // println!("{:?}", signal);
 }
 
+// fn readfile() {
+// }

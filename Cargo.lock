@@ -29,6 +29,7 @@ name = "audio-test"
 version = "0.1.0"
 dependencies = [
  "cpal",
+ "find_peaks",
  "ringbuf",
 ]
 
@@ -216,6 +217,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "find_peaks"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42c3e857d5281e7708a599c4f05ccc75b3cc68c6c8cac43aca98b628e6aed25d"
 
 [[package]]
 name = "fnv"
