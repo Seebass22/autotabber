@@ -55,6 +55,8 @@ fn handle_buffer(buf: &[f32]) {
     // let main = ps[0].middle_position();
     // let second = ps[1].middle_position();
     // let res = (main as i32 - second as i32).abs();
+
+    // println!("{}", res);
     // for i in 0..10 {
     //     print!("{} ", ps[i].middle_position());
     // }
@@ -62,16 +64,17 @@ fn handle_buffer(buf: &[f32]) {
 
     // println!("{} - {} = {}", ps[1].position);
     // println!("{}", ps[0].right_diff);
-    // println!("{}", res);
 
     // println!("{:?}", buf);
 }
 
-fn autocorrelation(signal: &[f32]) -> [f32; 3*BUFSIZE] {
-    let mut original = [0f32; 3 * BUFSIZE];
-    let mut lagged = [0f32; 3 * BUFSIZE];
-    let mut res_arr = [0f32; 3 * BUFSIZE];
-    let mut res = [0f32; 3 * BUFSIZE];
+fn autocorrelation<T: cpal::Sample>(signal: &[T]) -> [i32; 3*BUFSIZE] {
+    let signal: Vec<i16> = signal.iter().map(|x| x.to_i16()).collect();
+
+    let mut original = [0i16; 3 * BUFSIZE];
+    let mut lagged = [0i16; 3 * BUFSIZE];
+    let mut res_arr = [0i32; 3 * BUFSIZE];
+    let mut res = [0i32; 3 * BUFSIZE];
 
     // create array with original signal in middle
     for i in 0..BUFSIZE {
@@ -79,7 +82,7 @@ fn autocorrelation(signal: &[f32]) -> [f32; 3*BUFSIZE] {
     }
 
     for i in 0..(BUFSIZE * 2) {
-        lagged.fill(0f32);
+        lagged.fill(0i16);
         // move lagged signal
         for j in 0..BUFSIZE {
             lagged[i + j] = signal[j];
@@ -87,7 +90,7 @@ fn autocorrelation(signal: &[f32]) -> [f32; 3*BUFSIZE] {
 
         // sum
         for j in 0..(BUFSIZE * 3) {
-            res_arr[j] = lagged[j] * original[j];
+            res_arr[j] = lagged[j] as i32 * original[j] as i32;
         }
         res[i] = res_arr.iter().sum();
     }
@@ -95,11 +98,11 @@ fn autocorrelation(signal: &[f32]) -> [f32; 3*BUFSIZE] {
     // s.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
     // println!("{:?}", s);
-    println!("{:?}", res);
+    // println!("{:?}", res);
     // println!("END");
+    println!("{:?}", signal);
     res
     // println!("{:?}", lagged);
-    // println!("{:?}", signal);
 }
 
 // fn readfile() {
