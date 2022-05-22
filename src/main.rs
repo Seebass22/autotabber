@@ -2,11 +2,11 @@ use find_peaks::PeakFinder;
 use hound;
 
 use std::io;
+use std::env;
 
 const BUFSIZE: usize = 1024;
 
-/// Compute the RMS of either integers or float samples.
-fn compute_rms<S, R>(reader: &mut hound::WavReader<R>) -> f64
+fn run<S, R>(reader: &mut hound::WavReader<R>) -> f64
 where
     f64: From<S>,
     S: hound::Sample,
@@ -68,11 +68,13 @@ fn autocorrelation(signal: &[f64]) -> [f64; 3 * BUFSIZE] {
 }
 
 fn main() {
-    let mut reader = hound::WavReader::open("C.wav").unwrap();
-    let _pitch = match reader.spec().sample_format {
-        hound::SampleFormat::Float => compute_rms::<f32, _>(&mut reader),
-        hound::SampleFormat::Int => compute_rms::<i32, _>(&mut reader),
-    };
+    for fname in env::args().skip(1) {
+        let mut reader = hound::WavReader::open(&fname).unwrap();
+        let _pitch = match reader.spec().sample_format {
+            hound::SampleFormat::Float => run::<f32, _>(&mut reader),
+            hound::SampleFormat::Int => run::<i32, _>(&mut reader),
+        };
+    }
 }
 
 fn find_note(pitch: f64) -> &'static str {
