@@ -3,6 +3,7 @@ use hound;
 
 use std::io;
 use std::env;
+use realfft::RealFftPlanner;
 
 const BUFSIZE: usize = 1024;
 
@@ -40,31 +41,35 @@ fn distance_to_frequency(dist: usize) -> f64 {
     44100.0 / dist as f64
 }
 
-fn autocorrelation(signal: &[f64]) -> [f64; 3 * BUFSIZE] {
-    let mut original = [0f64; 3 * BUFSIZE];
-    let mut lagged = [0f64; 3 * BUFSIZE];
-    let mut res_arr = [0f64; 3 * BUFSIZE];
-    let mut res = [0f64; 3 * BUFSIZE];
+fn autocorrelation(signal: &[f64]) -> Vec<f64> {
+    let length = BUFSIZE*2;
 
-    // create array with original signal in middle
-    for i in 0..BUFSIZE {
-        original[BUFSIZE + i] = signal[i];
+    // make a planner
+    let mut real_planner = RealFftPlanner::<f64>::new();
+
+    // create a FFT
+    let r2c = real_planner.plan_fft_forward(length);
+
+    let mut indata = signal.to_owned();
+    // zero pad signal by factor of 2
+    indata.extend_from_slice(&[0f64; BUFSIZE]);
+    let mut spectrum = r2c.make_output_vec();
+
+    // Forward transform the input data
+    r2c.process(&mut indata, &mut spectrum).unwrap();
+    for c in spectrum.iter_mut() {
+        *c *= c.conj();
     }
 
-    for i in 0..(BUFSIZE * 2) {
-        lagged.fill(0f64);
-        // move lagged signal
-        for j in 0..BUFSIZE {
-            lagged[i + j] = signal[j];
-        }
+    // create an iFFT and an output vector
+    let c2r = real_planner.plan_fft_inverse(length);
+    let mut outdata = c2r.make_output_vec();
+    assert_eq!(outdata.len(), length);
 
-        // sum
-        for j in 0..(BUFSIZE * 3) {
-            res_arr[j] = lagged[j] * original[j];
-        }
-        res[i] = res_arr.iter().sum();
-    }
-    res
+    c2r.process(&mut spectrum, &mut outdata).unwrap();
+    // rotate right so that the peaks match up
+    outdata.rotate_right(BUFSIZE);
+    outdata
 }
 
 fn main() {
