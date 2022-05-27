@@ -86,7 +86,7 @@ fn find_note(pitch: f64) -> &'static str {
     let mut mindist = 10000.0;
     let mut index = 0;
     let mut minindex = 0;
-    for n in notes.iter() {
+    for n in NOTES.iter() {
         let dist = (pitch - n.0).abs();
         if dist < mindist {
             mindist = dist;
@@ -94,10 +94,10 @@ fn find_note(pitch: f64) -> &'static str {
         }
         index += 1;
     }
-    notes[minindex].1
+    NOTES[minindex].1
 }
 
-const notes: [(f64, &'static str); 108] = [
+const NOTES: [(f64, &'static str); 108] = [
     (16.35, "C_0"),
     (17.32, "CS_0"),
     (18.35, "D_0"),
