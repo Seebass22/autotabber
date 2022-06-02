@@ -47,6 +47,9 @@ where
 fn handle_buffer(buf: &[f64]) -> &'static str {
     let autoc = autocorrelation(buf);
     let ps = PeakFinder::new(&autoc).find_peaks();
+    if ps.len() < 2 {
+        return "X";
+    }
     let main = ps[0].middle_position() as isize;
     let second = ps[1].middle_position() as isize;
     let dist = (main - second).abs() as usize;
