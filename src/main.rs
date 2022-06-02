@@ -13,12 +13,30 @@ where
     S: hound::Sample,
     R: io::Read,
 {
+    let mut last_note = "";
+    let mut current_note;
+    let mut occurences = 0;
+    let mut notes_printed = 0;
+
     let mut buf = Vec::<f64>::with_capacity(BUFSIZE);
     for sample in reader.samples::<S>() {
         if sample.is_ok() {
             buf.push(f64::from(sample.unwrap()));
             if buf.len() == BUFSIZE {
-                handle_buffer(&buf);
+                current_note = handle_buffer(&buf);
+                if current_note == last_note {
+                    occurences += 1;
+                } else {
+                    last_note = current_note;
+                    occurences = 1;
+                }
+                if occurences == 4 {
+                    print!("{} ", current_note);
+                    notes_printed += 1;
+                    if notes_printed % 10 == 0 {
+                        println!();
+                    }
+                }
                 buf.clear();
             }
         }
@@ -26,15 +44,14 @@ where
     0.0
 }
 
-fn handle_buffer(buf: &[f64]) {
+fn handle_buffer(buf: &[f64]) -> &'static str {
     let autoc = autocorrelation(buf);
     let ps = PeakFinder::new(&autoc).find_peaks();
     let main = ps[0].middle_position() as isize;
     let second = ps[1].middle_position() as isize;
     let dist = (main - second).abs() as usize;
     let freq = distance_to_frequency(dist);
-    let note = find_note(freq);
-    println!("{}", note);
+    find_note(freq)
 }
 
 fn distance_to_frequency(dist: usize) -> f64 {
