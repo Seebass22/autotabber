@@ -43,7 +43,6 @@ fn distance_to_frequency(dist: usize) -> f64 {
 fn autocorrelation(signal: &[f64]) -> [f64; 3*BUFSIZE] {
     let mut original = [0f64; 3 * BUFSIZE];
     let mut lagged = [0f64; 3 * BUFSIZE];
-    let mut res_arr = [0f64; 3 * BUFSIZE];
     let mut res = [0f64; 3 * BUFSIZE];
 
     // create array with original signal in middle
@@ -59,10 +58,11 @@ fn autocorrelation(signal: &[f64]) -> [f64; 3*BUFSIZE] {
         }
 
         // sum
+        let mut sum = 0.0;
         for j in 0..(BUFSIZE * 3) {
-            res_arr[j] = lagged[j] * original[j];
+            sum += lagged[j] * original[j];
         }
-        res[i] = res_arr.iter().sum();
+        res[i] = sum;
     }
     res
 }
