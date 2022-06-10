@@ -1,9 +1,8 @@
 use find_peaks::PeakFinder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::sync::mpsc;
 
 use realfft::RealFftPlanner;
 
@@ -58,8 +57,6 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
 }
 
 fn main() {
-    let buf_arc: Arc<Mutex<Vec<f64>>> = Arc::new(Mutex::new(Vec::<f64>::with_capacity(BUFSIZE)));
-
     let host = cpal::default_host();
     let input_device = host
         .default_input_device()
@@ -67,27 +64,34 @@ fn main() {
 
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
-    let input_buf_mutex = Arc::clone(&buf_arc);
+
+    let (tx, rx) = mpsc::channel();
+    let mut buf = Vec::<f64>::with_capacity(BUFSIZE);
 
     let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
-        let mut buf = input_buf_mutex.lock().unwrap();
+
+        let mut skip = true;
         for &sample in data {
+            skip = !skip;
+            // only use first channel of input
+            // skip every 2nd sample
+            if skip {
+                continue;
+            }
+
             buf.push(f64::from(sample));
             if buf.len() == BUFSIZE {
-                handle_buffer(&buf);
+                tx.send(buf.clone()).unwrap();
                 buf.clear();
             }
         }
     };
 
-    let output_buf_mutex = Arc::clone(&buf_arc);
     thread::spawn(move || {
         loop {
-            let buf = output_buf_mutex.lock().unwrap();
-            let buf_content = buf.clone();
-            drop(buf);
-            println!("{:?}", buf_content);
-            thread::sleep(Duration::from_millis(1));
+            let received = rx.recv().unwrap();
+            let c = handle_buffer(&received);
+            println!("{}", c);
         }
     });
 
@@ -106,11 +110,9 @@ fn main() {
 
     // Run for 3 seconds before closing.
     println!("Playing for 3 seconds... ");
-    std::thread::sleep(std::time::Duration::from_secs(3));
+    std::thread::sleep(std::time::Duration::from_secs(10));
     drop(input_stream);
     println!("Done!");
-
-    // stream.play().expect("unable to play stream");
 }
 
 fn find_note(pitch: f64) -> &'static str {
