@@ -1,48 +1,13 @@
 use find_peaks::PeakFinder;
-use hound;
 
-use std::io;
-use std::env;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
 use realfft::RealFftPlanner;
 
 const BUFSIZE: usize = 1024;
-
-fn run<S, R>(reader: &mut hound::WavReader<R>) -> f64
-where
-    f64: From<S>,
-    S: hound::Sample,
-    R: io::Read,
-{
-    let mut last_note = "";
-    let mut current_note;
-    let mut occurences = 0;
-    let mut notes_printed = 0;
-
-    let mut buf = Vec::<f64>::with_capacity(BUFSIZE);
-    for sample in reader.samples::<S>() {
-        if sample.is_ok() {
-            buf.push(f64::from(sample.unwrap()));
-            if buf.len() == BUFSIZE {
-                current_note = handle_buffer(&buf);
-                if current_note == last_note {
-                    occurences += 1;
-                } else {
-                    last_note = current_note;
-                    occurences = 1;
-                }
-                if occurences == 4 {
-                    print!("{} ", current_note);
-                    notes_printed += 1;
-                    if notes_printed % 10 == 0 {
-                        println!();
-                    }
-                }
-                buf.clear();
-            }
-        }
-    }
-    0.0
-}
 
 fn handle_buffer(buf: &[f64]) -> &'static str {
     let autoc = autocorrelation(buf);
@@ -93,13 +58,59 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
 }
 
 fn main() {
-    for fname in env::args().skip(1) {
-        let mut reader = hound::WavReader::open(&fname).unwrap();
-        let _pitch = match reader.spec().sample_format {
-            hound::SampleFormat::Float => run::<f32, _>(&mut reader),
-            hound::SampleFormat::Int => run::<i32, _>(&mut reader),
-        };
-    }
+    let buf_arc: Arc<Mutex<Vec<f64>>> = Arc::new(Mutex::new(Vec::<f64>::with_capacity(BUFSIZE)));
+
+    let host = cpal::default_host();
+    let input_device = host
+        .default_input_device()
+        .expect("failed to find input device");
+
+    let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
+
+    let input_buf_mutex = Arc::clone(&buf_arc);
+
+    let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
+        let mut buf = input_buf_mutex.lock().unwrap();
+        for &sample in data {
+            buf.push(f64::from(sample));
+            if buf.len() == BUFSIZE {
+                handle_buffer(&buf);
+                buf.clear();
+            }
+        }
+    };
+
+    let output_buf_mutex = Arc::clone(&buf_arc);
+    thread::spawn(move || {
+        loop {
+            let buf = output_buf_mutex.lock().unwrap();
+            let buf_content = buf.clone();
+            drop(buf);
+            println!("{:?}", buf_content);
+            thread::sleep(Duration::from_millis(1));
+        }
+    });
+
+    // Build streams.
+    println!(
+        "Attempting to build both streams with f32 samples and `{:?}`.",
+        config
+    );
+    let input_stream = input_device
+        .build_input_stream(&config, input_data_fn, err_fn)
+        .unwrap();
+    println!("Successfully built streams.");
+
+    // Play the streams.
+    input_stream.play().unwrap();
+
+    // Run for 3 seconds before closing.
+    println!("Playing for 3 seconds... ");
+    std::thread::sleep(std::time::Duration::from_secs(3));
+    drop(input_stream);
+    println!("Done!");
+
+    // stream.play().expect("unable to play stream");
 }
 
 fn find_note(pitch: f64) -> &'static str {
@@ -115,6 +126,10 @@ fn find_note(pitch: f64) -> &'static str {
         index += 1;
     }
     NOTES[minindex].1
+}
+
+fn err_fn(err: cpal::StreamError) {
+    eprintln!("an error occurred on stream: {}", err);
 }
 
 const NOTES: [(f64, &'static str); 108] = [
