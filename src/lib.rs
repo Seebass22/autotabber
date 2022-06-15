@@ -1,9 +1,8 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::thread;
-use std::sync::mpsc;
 use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
-
+use std::sync::mpsc;
+use std::thread;
 
 // good enough for a C harp
 const BUFSIZE: usize = 512;
@@ -16,12 +15,10 @@ pub fn run() {
 
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
-
     let (tx, rx) = mpsc::channel();
     let mut buf = Vec::<f64>::with_capacity(BUFSIZE);
 
     let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
-
         let mut skip = true;
         for &sample in data {
             skip = !skip;
@@ -83,7 +80,7 @@ fn distance_to_frequency(dist: usize) -> f64 {
 }
 
 fn autocorrelation(signal: &[f64]) -> Vec<f64> {
-    let length = BUFSIZE*2;
+    let length = BUFSIZE * 2;
 
     // make a planner
     let mut real_planner = RealFftPlanner::<f64>::new();
@@ -112,7 +109,6 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
     outdata.rotate_right(BUFSIZE);
     outdata
 }
-
 
 fn find_note(pitch: f64) -> &'static str {
     let mut mindist = 10000.0;
@@ -183,39 +179,39 @@ const NOTES: [(f64, &'static str); 108] = [
     (233.08, ""),
     (246.94, ""),
     (261.63, " 1"),
-    (277.18, "-1'" ),
-    (293.66, "-1" ),
+    (277.18, "-1'"),
+    (293.66, "-1"),
     (311.13, " 1o"),
     (329.63, " 2"),
-    (349.23, "-2''" ),
-    (369.99, "-2'" ),
-    (392.00, "-2" ),
-    (415.30, "-3'''" ),
-    (440.00, "-3''" ),
-    (466.16, "-3'" ),
-    (493.88, "-3" ),
+    (349.23, "-2''"),
+    (369.99, "-2'"),
+    (392.00, "-2"),
+    (415.30, "-3'''"),
+    (440.00, "-3''"),
+    (466.16, "-3'"),
+    (493.88, "-3"),
     (523.25, " 4"),
-    (554.37, "-4'" ),
-    (587.33, "-4" ),
+    (554.37, "-4'"),
+    (587.33, "-4"),
     (622.25, " 4o"),
     (659.25, " 5"),
-    (698.46, "-5" ),
+    (698.46, "-5"),
     (739.99, " 5o"),
     (783.99, " 6"),
-    (830.61, "-6'" ),
-    (880.00, "-6" ),
+    (830.61, "-6'"),
+    (880.00, "-6"),
     (932.33, " 6o"),
-    (987.77, "-7" ),
+    (987.77, "-7"),
     (1046.50, " 7"),
-    (1108.73, "-7o" ),
-    (1174.66, "-8" ),
+    (1108.73, "-7o"),
+    (1174.66, "-8"),
     (1244.51, " 8'"),
-    (1318.51, " 8" ),
-    (1396.91, "-9" ),
+    (1318.51, " 8"),
+    (1396.91, "-9"),
     (1479.98, " 9'"),
     (1567.98, " 9"),
-    (1661.22, "-9o" ),
-    (1760.00, "-10" ),
+    (1661.22, "-9o"),
+    (1760.00, "-10"),
     (1864.66, " 10''"),
     (1975.53, " 10'"),
     (2093.00, " 10"),
