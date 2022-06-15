@@ -59,9 +59,7 @@ pub fn run() {
     // Play the streams.
     input_stream.play().unwrap();
 
-    // Run for 3 seconds before closing.
-    println!("Playing for 3 seconds... ");
-    std::thread::sleep(std::time::Duration::from_secs(10));
+    std::thread::sleep(std::time::Duration::from_secs(1000));
     drop(input_stream);
     println!("Done!");
 }
