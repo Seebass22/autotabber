@@ -48,11 +48,15 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
                 let c = handle_buffer(&received);
                 if c == previous_note {
                     count += 1;
+                    if count > min_count {
+                        print!("-");
+                    }
                 } else {
                     count = 1
                 }
                 if count == min_count {
-                    println!("{}", c);
+                    println!();
+                    print!("{}", c);
                 }
                 previous_note = c;
             }
