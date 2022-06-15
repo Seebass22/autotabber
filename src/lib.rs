@@ -4,10 +4,7 @@ use realfft::RealFftPlanner;
 use std::sync::mpsc;
 use std::thread;
 
-// good enough for a C harp
-const BUFSIZE: usize = 512;
-
-pub fn run() {
+pub fn run(bufsize: usize, min_count: u8, full: bool) {
     let host = cpal::default_host();
     let input_device = host
         .default_input_device()
@@ -16,7 +13,7 @@ pub fn run() {
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
     let (tx, rx) = mpsc::channel();
-    let mut buf = Vec::<f64>::with_capacity(BUFSIZE);
+    let mut buf = Vec::<f64>::with_capacity(bufsize);
 
     let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
         let mut skip = true;
@@ -29,17 +26,21 @@ pub fn run() {
             }
 
             buf.push(f64::from(sample));
-            if buf.len() == BUFSIZE {
+            if buf.len() == bufsize {
                 tx.send(buf.clone()).unwrap();
                 buf.clear();
             }
         }
     };
 
-    let full = false;
-
     thread::spawn(move || {
-        if !full {
+        if full {
+            loop {
+                let received = rx.recv().unwrap();
+                let c = handle_buffer(&received);
+                println!("{}", c);
+            }
+        } else {
             let mut previous_note = "";
             let mut count = 0;
             loop {
@@ -50,16 +51,10 @@ pub fn run() {
                 } else {
                     count = 1
                 }
-                if count == 4 {
+                if count == min_count {
                     println!("{}", c);
                 }
                 previous_note = c;
-            }
-        } else {
-            loop {
-                let received = rx.recv().unwrap();
-                let c = handle_buffer(&received);
-                println!("{}", c);
             }
         }
     });
@@ -100,7 +95,8 @@ fn distance_to_frequency(dist: usize) -> f64 {
 }
 
 fn autocorrelation(signal: &[f64]) -> Vec<f64> {
-    let length = BUFSIZE * 2;
+    let bufsize = signal.len();
+    let length = bufsize * 2;
 
     // make a planner
     let mut real_planner = RealFftPlanner::<f64>::new();
@@ -110,7 +106,7 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
 
     let mut indata = signal.to_owned();
     // zero pad signal by factor of 2
-    indata.extend_from_slice(&[0f64; BUFSIZE]);
+    indata.resize(bufsize*2, 0f64);
     let mut spectrum = r2c.make_output_vec();
 
     // Forward transform the input data
@@ -126,7 +122,7 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
 
     c2r.process(&mut spectrum, &mut outdata).unwrap();
     // rotate right so that the peaks match up
-    outdata.rotate_right(BUFSIZE);
+    outdata.rotate_right(bufsize);
     outdata
 }
 
