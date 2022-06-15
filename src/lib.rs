@@ -5,7 +5,8 @@ use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
 
 
-const BUFSIZE: usize = 1024;
+// good enough for a C harp
+const BUFSIZE: usize = 512;
 
 pub fn run() {
     let host = cpal::default_host();
