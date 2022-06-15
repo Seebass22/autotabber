@@ -36,11 +36,31 @@ pub fn run() {
         }
     };
 
+    let full = false;
+
     thread::spawn(move || {
-        loop {
-            let received = rx.recv().unwrap();
-            let c = handle_buffer(&received);
-            println!("{}", c);
+        if !full {
+            let mut previous_note = "";
+            let mut count = 0;
+            loop {
+                let received = rx.recv().unwrap();
+                let c = handle_buffer(&received);
+                if c == previous_note {
+                    count += 1;
+                } else {
+                    count = 1
+                }
+                if count == 4 {
+                    println!("{}", c);
+                }
+                previous_note = c;
+            }
+        } else {
+            loop {
+                let received = rx.recv().unwrap();
+                let c = handle_buffer(&received);
+                println!("{}", c);
+            }
         }
     });
 
