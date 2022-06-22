@@ -5,8 +5,7 @@ use std::io;
 
 const BUFSIZE : usize = 1024;
 
-/// Compute the RMS of either integers or float samples.
-fn compute_rms<S, R>(reader: &mut hound::WavReader<R>) -> f64
+fn run<S, R>(reader: &mut hound::WavReader<R>)
 where
     f64: From<S>,
     S: hound::Sample,
@@ -23,8 +22,16 @@ where
             }
         }
     }
-    0.0
 }
+
+fn main() {
+    let mut reader = hound::WavReader::open("C.wav").unwrap();
+    match reader.spec().sample_format {
+        hound::SampleFormat::Float => run::<f32, _>(&mut reader),
+        hound::SampleFormat::Int => run::<i32, _>(&mut reader),
+    };
+}
+
 
 fn handle_buffer(buf: &[f64]) {
     let autoc = autocorrelation(buf);
@@ -65,12 +72,4 @@ fn autocorrelation(signal: &[f64]) -> [f64; 3*BUFSIZE] {
         res[i] = sum;
     }
     res
-}
-
-fn main() {
-    let mut reader = hound::WavReader::open("C.wav").unwrap();
-    let _pitch = match reader.spec().sample_format {
-        hound::SampleFormat::Float => compute_rms::<f32, _>(&mut reader),
-        hound::SampleFormat::Int => compute_rms::<i32, _>(&mut reader),
-    };
 }
