@@ -128,15 +128,13 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
 
 fn find_note(pitch: f64) -> &'static str {
     let mut mindist = 10000.0;
-    let mut index = 0;
     let mut minindex = 0;
-    for n in NOTES.iter() {
+    for (index, n) in NOTES.iter().enumerate() {
         let dist = (pitch - n.0).abs();
         if dist < mindist {
             mindist = dist;
             minindex = index;
         }
-        index += 1;
     }
     NOTES[minindex].1
 }
@@ -145,7 +143,7 @@ fn err_fn(err: cpal::StreamError) {
     eprintln!("an error occurred on stream: {}", err);
 }
 
-const NOTES: [(f64, &'static str); 108] = [
+const NOTES: [(f64, &str); 108] = [
     (16.35, ""),
     (17.32, ""),
     (18.35, ""),
