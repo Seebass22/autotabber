@@ -1,4 +1,5 @@
 use find_peaks::PeakFinder;
+use std::env;
 use std::io;
 
 const BUFSIZE: usize = 1024;
@@ -20,11 +21,13 @@ where
 }
 
 fn main() {
-    let mut reader = hound::WavReader::open("C.wav").unwrap();
-    match reader.spec().sample_format {
-        hound::SampleFormat::Float => run::<f32, _>(&mut reader),
-        hound::SampleFormat::Int => run::<i32, _>(&mut reader),
-    };
+    for fname in env::args().skip(1) {
+        let mut reader = hound::WavReader::open(fname).unwrap();
+        match reader.spec().sample_format {
+            hound::SampleFormat::Float => run::<f32, _>(&mut reader),
+            hound::SampleFormat::Int => run::<i32, _>(&mut reader),
+        };
+    }
 }
 
 fn handle_buffer(buf: &[f64]) {
