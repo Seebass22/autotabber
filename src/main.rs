@@ -1,9 +1,7 @@
-use hound;
 use find_peaks::PeakFinder;
-
 use std::io;
 
-const BUFSIZE : usize = 1024;
+const BUFSIZE: usize = 1024;
 
 fn run<S, R>(reader: &mut hound::WavReader<R>)
 where
@@ -11,15 +9,12 @@ where
     S: hound::Sample,
     R: io::Read,
 {
-
     let mut buf = Vec::<f64>::with_capacity(BUFSIZE);
-    for sample in reader.samples::<S>() {
-        if sample.is_ok() {
-            buf.push(f64::from(sample.unwrap()));
-            if buf.len() == BUFSIZE {
-                handle_buffer(&buf);
-                buf.clear();
-            }
+    for sample in reader.samples::<S>().flatten() {
+        buf.push(f64::from(sample));
+        if buf.len() == BUFSIZE {
+            handle_buffer(&buf);
+            buf.clear();
         }
     }
 }
@@ -31,7 +26,6 @@ fn main() {
         hound::SampleFormat::Int => run::<i32, _>(&mut reader),
     };
 }
-
 
 fn handle_buffer(buf: &[f64]) {
     let autoc = autocorrelation(buf);
@@ -47,7 +41,7 @@ fn distance_to_frequency(dist: usize) -> f64 {
     44100.0 / dist as f64
 }
 
-fn autocorrelation(signal: &[f64]) -> [f64; 3*BUFSIZE] {
+fn autocorrelation(signal: &[f64]) -> [f64; 3 * BUFSIZE] {
     let mut original = [0f64; 3 * BUFSIZE];
     let mut lagged = [0f64; 3 * BUFSIZE];
     let mut res = [0f64; 3 * BUFSIZE];
