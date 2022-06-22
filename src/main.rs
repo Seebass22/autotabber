@@ -47,16 +47,12 @@ fn autocorrelation(signal: &[f64]) -> [f64; 3 * BUFSIZE] {
     let mut res = [0f64; 3 * BUFSIZE];
 
     // create array with original signal in middle
-    for i in 0..BUFSIZE {
-        original[BUFSIZE + i] = signal[i];
-    }
+    original[BUFSIZE..(BUFSIZE * 2)].copy_from_slice(&signal[..BUFSIZE]);
 
     for i in 0..(BUFSIZE * 2) {
         lagged.fill(0f64);
         // move lagged signal
-        for j in 0..BUFSIZE {
-            lagged[i + j] = signal[j];
-        }
+        lagged[i..(BUFSIZE + i)].copy_from_slice(&signal[..BUFSIZE]);
 
         // sum
         let mut sum = 0.0;
