@@ -1,6 +1,8 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
+use std::io;
+use std::io::Write;
 use std::sync::mpsc;
 use std::thread;
 
@@ -43,6 +45,7 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
         } else {
             let mut previous_note = "";
             let mut count = 0;
+            let mut notes_printed = 0;
             loop {
                 let received = rx.recv().unwrap();
                 let c = handle_buffer(&received);
@@ -52,7 +55,18 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
                     count = 1
                 }
                 if count == min_count {
-                    println!("{}", c);
+                    if c == "" {
+                        println!();
+                        notes_printed = 0;
+                    } else {
+                        print!("{} ", c);
+                        io::stdout().flush().unwrap();
+                        notes_printed += 1;
+                        if notes_printed == 20 {
+                            notes_printed = 0;
+                            println!();
+                        }
+                    }
                 }
                 previous_note = c;
             }
@@ -106,7 +120,7 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
 
     let mut indata = signal.to_owned();
     // zero pad signal by factor of 2
-    indata.resize(bufsize*2, 0f64);
+    indata.resize(bufsize * 2, 0f64);
     let mut spectrum = r2c.make_output_vec();
 
     // Forward transform the input data
@@ -192,11 +206,11 @@ const NOTES: [(f64, &str); 108] = [
     (220.00, ""),
     (233.08, ""),
     (246.94, ""),
-    (261.63, " 1"),
+    (261.63, "1"),
     (277.18, "-1'"),
     (293.66, "-1"),
-    (311.13, " 1o"),
-    (329.63, " 2"),
+    (311.13, "1o"),
+    (329.63, "2"),
     (349.23, "-2''"),
     (369.99, "-2'"),
     (392.00, "-2"),
@@ -204,31 +218,31 @@ const NOTES: [(f64, &str); 108] = [
     (440.00, "-3''"),
     (466.16, "-3'"),
     (493.88, "-3"),
-    (523.25, " 4"),
+    (523.25, "4"),
     (554.37, "-4'"),
     (587.33, "-4"),
-    (622.25, " 4o"),
-    (659.25, " 5"),
+    (622.25, "4o"),
+    (659.25, "5"),
     (698.46, "-5"),
-    (739.99, " 5o"),
-    (783.99, " 6"),
+    (739.99, "5o"),
+    (783.99, "6"),
     (830.61, "-6'"),
     (880.00, "-6"),
-    (932.33, " 6o"),
+    (932.33, "6o"),
     (987.77, "-7"),
-    (1046.50, " 7"),
+    (1046.50, "7"),
     (1108.73, "-7o"),
     (1174.66, "-8"),
-    (1244.51, " 8'"),
-    (1318.51, " 8"),
+    (1244.51, "8'"),
+    (1318.51, "8"),
     (1396.91, "-9"),
-    (1479.98, " 9'"),
-    (1567.98, " 9"),
+    (1479.98, "9'"),
+    (1567.98, "9"),
     (1661.22, "-9o"),
     (1760.00, "-10"),
-    (1864.66, " 10''"),
-    (1975.53, " 10'"),
-    (2093.00, " 10"),
+    (1864.66, "10''"),
+    (1975.53, "10'"),
+    (2093.00, "10"),
     (2217.46, ""),
     (2349.32, ""),
     (2489.02, ""),
