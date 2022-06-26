@@ -55,7 +55,7 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
                     count = 1
                 }
                 if count == min_count {
-                    if c == "" {
+                    if c.is_empty() {
                         println!();
                         notes_printed = 0;
                     } else {
