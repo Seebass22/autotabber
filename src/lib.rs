@@ -6,7 +6,7 @@ use std::io::Write;
 use std::sync::mpsc;
 use std::thread;
 
-pub fn run(bufsize: usize, min_count: u8, full: bool) {
+pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
     let host = cpal::default_host();
     let input_device = host
         .default_input_device()
@@ -39,7 +39,7 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
         if full {
             loop {
                 let received = rx.recv().unwrap();
-                let c = handle_buffer(&received);
+                let c = handle_buffer(&received, min_volume);
                 println!("{}", c);
             }
         } else {
@@ -48,7 +48,7 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
             let mut notes_printed = 0;
             loop {
                 let received = rx.recv().unwrap();
-                let c = handle_buffer(&received);
+                let c = handle_buffer(&received, min_volume);
                 if c == previous_note {
                     count += 1;
                 } else {
@@ -86,8 +86,8 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
     println!("Done!");
 }
 
-fn handle_buffer(buf: &[f64]) -> &'static str {
-    if !is_loud_enough(buf, 0.6) {
+fn handle_buffer(buf: &[f64], min_volume: f64) -> &'static str {
+    if !is_loud_enough(buf, min_volume) {
         return "";
     }
     let autoc = autocorrelation(buf);

@@ -14,9 +14,13 @@ struct Args {
 
     #[clap(short, long, value_parser, default_value_t = 512)]
     buffer_size: usize,
+
+    /// minimum volume to detect notes
+    #[clap(short, long, value_parser, default_value_t = 0.6)]
+    min_volume: f64,
 }
 
 fn main() {
     let args = Args::parse();
-    run(args.buffer_size, args.count, args.full);
+    run(args.buffer_size, args.count, args.full, args.min_volume);
 }
