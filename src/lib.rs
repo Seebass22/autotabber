@@ -54,18 +54,13 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
                 } else {
                     count = 1
                 }
-                if count == min_count {
-                    if c.is_empty() {
-                        println!();
+                if count == min_count && !c.is_empty() {
+                    print!("{} ", c);
+                    io::stdout().flush().unwrap();
+                    notes_printed += 1;
+                    if notes_printed == 20 {
                         notes_printed = 0;
-                    } else {
-                        print!("{} ", c);
-                        io::stdout().flush().unwrap();
-                        notes_printed += 1;
-                        if notes_printed == 20 {
-                            notes_printed = 0;
-                            println!();
-                        }
+                        println!();
                     }
                 }
                 previous_note = c;
@@ -92,16 +87,24 @@ pub fn run(bufsize: usize, min_count: u8, full: bool) {
 }
 
 fn handle_buffer(buf: &[f64]) -> &'static str {
+    if !is_loud_enough(buf, 0.6) {
+        return "";
+    }
     let autoc = autocorrelation(buf);
     let ps = PeakFinder::new(&autoc).find_peaks();
     if ps.len() < 2 {
-        return "X";
+        return "";
     }
     let main = ps[0].middle_position() as isize;
     let second = ps[1].middle_position() as isize;
     let dist = (main - second).abs() as usize;
     let freq = distance_to_frequency(dist);
     find_note(freq)
+}
+
+fn is_loud_enough(buf: &[f64], min_volume: f64) -> bool {
+    let volume: f64 = buf.iter().map(|x| x.abs()).sum();
+    volume > min_volume
 }
 
 fn distance_to_frequency(dist: usize) -> f64 {
