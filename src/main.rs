@@ -1,8 +1,6 @@
 use find_peaks::PeakFinder;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::thread;
-use std::sync::mpsc;
 
 use realfft::RealFftPlanner;
 
@@ -65,7 +63,6 @@ fn main() {
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
 
-    let (tx, rx) = mpsc::channel();
     let mut buf = Vec::<f64>::with_capacity(BUFSIZE);
 
     let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
@@ -81,19 +78,12 @@ fn main() {
 
             buf.push(f64::from(sample));
             if buf.len() == BUFSIZE {
-                tx.send(buf.clone()).unwrap();
+                let c = handle_buffer(&buf);
+                println!("{}", c);
                 buf.clear();
             }
         }
     };
-
-    thread::spawn(move || {
-        loop {
-            let received = rx.recv().unwrap();
-            let c = handle_buffer(&received);
-            println!("{}", c);
-        }
-    });
 
     // Build streams.
     println!(
@@ -109,8 +99,7 @@ fn main() {
     input_stream.play().unwrap();
 
     // Run for 3 seconds before closing.
-    println!("Playing for 3 seconds... ");
-    std::thread::sleep(std::time::Duration::from_secs(10));
+    std::thread::sleep(std::time::Duration::from_secs(1000));
     drop(input_stream);
     println!("Done!");
 }
