@@ -24,7 +24,7 @@ fn distance_to_frequency(dist: usize) -> f64 {
 }
 
 fn autocorrelation(signal: &[f64]) -> Vec<f64> {
-    let length = BUFSIZE*2;
+    let length = BUFSIZE * 2;
 
     // make a planner
     let mut real_planner = RealFftPlanner::<f64>::new();
@@ -62,11 +62,9 @@ fn main() {
 
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
-
     let mut buf = Vec::<f64>::with_capacity(BUFSIZE);
 
     let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
-
         let mut skip = true;
         for &sample in data {
             skip = !skip;
@@ -85,23 +83,13 @@ fn main() {
         }
     };
 
-    // Build streams.
-    println!(
-        "Attempting to build both streams with f32 samples and `{:?}`.",
-        config
-    );
     let input_stream = input_device
         .build_input_stream(&config, input_data_fn, err_fn)
         .unwrap();
     println!("Successfully built streams.");
 
-    // Play the streams.
     input_stream.play().unwrap();
-
-    // Run for 3 seconds before closing.
     std::thread::sleep(std::time::Duration::from_secs(1000));
-    drop(input_stream);
-    println!("Done!");
 }
 
 fn find_note(pitch: f64) -> &'static str {
