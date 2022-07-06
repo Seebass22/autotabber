@@ -1,21 +1,38 @@
-use autotabber::*;
 use eframe::egui;
+use std::sync::mpsc;
+use std::sync::mpsc::Receiver;
 
 pub struct GUI {
-    _full: bool,
-    _count: u8,
-    _buffer_size: usize,
-    _min_volume: f64,
+    full: bool,
+    count: u8,
+    buffer_size: usize,
+    min_volume: f64,
+    output: String,
+    receiver: Option<Receiver<String>>,
 }
 
 impl Default for GUI {
     fn default() -> Self {
-        Self {
-            _full: false,
-            _count: 4,
-            _buffer_size: 512,
-            _min_volume: 0.6,
-        }
+        let (sender, receiver) = mpsc::channel();
+        let gui = GUI {
+            full: false,
+            count: 4,
+            buffer_size: 512,
+            min_volume: 0.6,
+            output: "".to_string(),
+            receiver: Some(receiver),
+        };
+
+        std::thread::spawn(move || {
+            autotabber::run(
+                gui.buffer_size,
+                gui.count,
+                gui.full,
+                gui.min_volume,
+                Some(sender),
+            );
+        });
+        gui
     }
 }
 
@@ -39,6 +56,16 @@ impl eframe::App for GUI {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            let _response = ui.add(egui::TextEdit::multiline(&mut self.output));
         });
+
+        if let Some(receiver) = &self.receiver {
+            match receiver.try_recv() {
+                Ok(data) => {
+                    self.output.push_str(&data);
+                }
+                Err(_err) => (),
+            }
+        }
     }
 }
