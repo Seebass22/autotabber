@@ -105,7 +105,6 @@ dependencies = [
  "cpal",
  "find_peaks",
  "hound",
- "lazy_static",
  "realfft",
  "ringbuf",
 ]
