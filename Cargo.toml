@@ -1,15 +1,4 @@
-[package]
-name = "autotabber"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-cpal = "0.13.5"
-ringbuf = "0.2.8"
-find_peaks = "0.1.4"
-hound = "3.4.0"
-realfft = "3.0.0"
-lazy_static = "1.4.0"
-clap = { version = "3.2.4", features = ["derive"] }
+[workspace]
+members = [
+    "autotabber",
+]
