@@ -22,5 +22,11 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    run(args.buffer_size, args.count, args.full, args.min_volume);
+    run(
+        args.buffer_size,
+        args.count,
+        args.full,
+        args.min_volume,
+        None,
+    );
 }

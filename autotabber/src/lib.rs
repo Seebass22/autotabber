@@ -3,8 +3,15 @@ use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
 use std::io;
 use std::io::Write;
+use std::sync::mpsc::Sender;
 
-pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
+pub fn run(
+    bufsize: usize,
+    min_count: u8,
+    full: bool,
+    min_volume: f64,
+    sender: Option<Sender<String>>,
+) {
     let host = cpal::default_host();
     let input_device = host
         .default_input_device()
@@ -13,7 +20,6 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
     let mut buf = Vec::<f64>::with_capacity(bufsize);
-
 
     let mut previous_note = "";
     let mut count = 0;
@@ -33,7 +39,8 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
             if buf.len() == bufsize {
                 if full {
                     let c = get_buffer_note(&buf, min_volume);
-                    println!("{}", c);
+                    send_or_print(c, &sender);
+                    send_or_print(" \n", &sender);
                 } else {
                     let c = get_buffer_note(&buf, min_volume);
                     if c == previous_note {
@@ -42,12 +49,13 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
                         count = 1
                     }
                     if count == min_count && !c.is_empty() {
-                        print!("{} ", c);
+                        send_or_print(c, &sender);
+                        send_or_print(" ", &sender);
                         io::stdout().flush().unwrap();
                         notes_printed += 1;
                         if notes_printed == 20 {
                             notes_printed = 0;
-                            println!();
+                            send_or_print("\n", &sender);
                         }
                     }
                     previous_note = c;
@@ -73,6 +81,14 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
     std::thread::sleep(std::time::Duration::from_secs(1000));
     drop(input_stream);
     println!("Done!");
+}
+
+fn send_or_print(data: &str, sender: &Option<Sender<String>>) {
+    if let Some(sender) = sender {
+        sender.send(data.to_string()).unwrap();
+    } else {
+        print!("{}", data);
+    }
 }
 
 fn get_buffer_note(buf: &[f64], min_volume: f64) -> &'static str {
