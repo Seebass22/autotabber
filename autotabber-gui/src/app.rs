@@ -67,5 +67,6 @@ impl eframe::App for GUI {
                 Err(_err) => (),
             }
         }
+        ctx.request_repaint();
     }
 }
