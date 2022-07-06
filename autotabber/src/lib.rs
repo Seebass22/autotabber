@@ -3,8 +3,6 @@ use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
 use std::io;
 use std::io::Write;
-use std::sync::mpsc;
-use std::thread;
 
 pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
     let host = cpal::default_host();
@@ -14,8 +12,12 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
 
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
-    let (tx, rx) = mpsc::channel();
     let mut buf = Vec::<f64>::with_capacity(bufsize);
+
+
+    let mut previous_note = "";
+    let mut count = 0;
+    let mut notes_printed = 0;
 
     let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
         let mut skip = true;
@@ -29,44 +31,31 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
 
             buf.push(f64::from(sample));
             if buf.len() == bufsize {
-                tx.send(buf.clone()).unwrap();
+                if full {
+                    let c = get_buffer_note(&buf, min_volume);
+                    println!("{}", c);
+                } else {
+                    let c = get_buffer_note(&buf, min_volume);
+                    if c == previous_note {
+                        count += 1;
+                    } else {
+                        count = 1
+                    }
+                    if count == min_count && !c.is_empty() {
+                        print!("{} ", c);
+                        io::stdout().flush().unwrap();
+                        notes_printed += 1;
+                        if notes_printed == 20 {
+                            notes_printed = 0;
+                            println!();
+                        }
+                    }
+                    previous_note = c;
+                }
                 buf.clear();
             }
         }
     };
-
-    thread::spawn(move || {
-        if full {
-            loop {
-                let received = rx.recv().unwrap();
-                let c = get_buffer_note(&received, min_volume);
-                println!("{}", c);
-            }
-        } else {
-            let mut previous_note = "";
-            let mut count = 0;
-            let mut notes_printed = 0;
-            loop {
-                let received = rx.recv().unwrap();
-                let c = get_buffer_note(&received, min_volume);
-                if c == previous_note {
-                    count += 1;
-                } else {
-                    count = 1
-                }
-                if count == min_count && !c.is_empty() {
-                    print!("{} ", c);
-                    io::stdout().flush().unwrap();
-                    notes_printed += 1;
-                    if notes_printed == 20 {
-                        notes_printed = 0;
-                        println!();
-                    }
-                }
-                previous_note = c;
-            }
-        }
-    });
 
     // Build streams.
     println!(
