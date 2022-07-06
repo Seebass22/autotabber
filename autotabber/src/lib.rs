@@ -39,7 +39,7 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
         if full {
             loop {
                 let received = rx.recv().unwrap();
-                let c = handle_buffer(&received, min_volume);
+                let c = get_buffer_note(&received, min_volume);
                 println!("{}", c);
             }
         } else {
@@ -48,7 +48,7 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
             let mut notes_printed = 0;
             loop {
                 let received = rx.recv().unwrap();
-                let c = handle_buffer(&received, min_volume);
+                let c = get_buffer_note(&received, min_volume);
                 if c == previous_note {
                     count += 1;
                 } else {
@@ -86,7 +86,7 @@ pub fn run(bufsize: usize, min_count: u8, full: bool, min_volume: f64) {
     println!("Done!");
 }
 
-fn handle_buffer(buf: &[f64], min_volume: f64) -> &'static str {
+fn get_buffer_note(buf: &[f64], min_volume: f64) -> &'static str {
     if !is_loud_enough(buf, min_volume) {
         return "";
     }
