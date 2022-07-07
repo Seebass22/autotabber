@@ -85,6 +85,7 @@ pub fn run(
 
 fn send_or_print(data: &str, sender: &Option<Sender<String>>) {
     if let Some(sender) = sender {
+        // panic (exit) thread if there is no receiver
         sender.send(data.to_string()).unwrap();
     } else {
         print!("{}", data);
