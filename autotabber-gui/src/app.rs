@@ -26,6 +26,8 @@ impl Default for GUI {
 
 impl GUI {
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+        // don't print error message on panic (thread exit)
+        std::panic::set_hook(Box::new(|_| {}));
         Default::default()
     }
 }
