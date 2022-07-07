@@ -67,7 +67,7 @@ pub fn run(
 
     // Build streams.
     println!(
-        "Attempting to build both streams with f32 samples and `{:?}`.",
+        "Attempting to build input stream with f32 samples and `{:?}`.",
         config
     );
     let input_stream = input_device
