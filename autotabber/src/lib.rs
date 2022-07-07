@@ -78,9 +78,9 @@ pub fn run(
     // Play the streams.
     input_stream.play().unwrap();
 
-    std::thread::sleep(std::time::Duration::from_secs(1000));
-    drop(input_stream);
-    println!("Done!");
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(10));
+    }
 }
 
 fn send_or_print(data: &str, sender: &Option<Sender<String>>) {
