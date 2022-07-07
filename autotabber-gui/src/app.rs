@@ -63,6 +63,18 @@ impl eframe::App for GUI {
                     self.receiver = None;
                 }
             });
+
+            ui.horizontal(|ui| {
+                ui.label("buffer size:");
+                let buffer_sizes: [usize; 5] = [256, 512, 1024, 2048, 4096];
+                for value in buffer_sizes.iter() {
+                    ui.selectable_value(&mut self.buffer_size, *value, value.to_string());
+                }
+            });
+
+            ui.add(egui::Slider::new(&mut self.count, 1..=20).text("MinOccurs"));
+            ui.add(egui::Slider::new(&mut self.min_volume, 0.0..=1.0).text("MinVolume"));
+
             ui.add(egui::TextEdit::multiline(&mut self.output));
         });
 
