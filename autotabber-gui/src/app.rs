@@ -13,26 +13,14 @@ pub struct GUI {
 
 impl Default for GUI {
     fn default() -> Self {
-        let (sender, receiver) = mpsc::channel();
-        let gui = GUI {
+        Self {
             full: false,
             count: 4,
             buffer_size: 512,
             min_volume: 0.6,
             output: "".to_string(),
-            receiver: Some(receiver),
-        };
-
-        std::thread::spawn(move || {
-            autotabber::run(
-                gui.buffer_size,
-                gui.count,
-                gui.full,
-                gui.min_volume,
-                Some(sender),
-            );
-        });
-        gui
+            receiver: None,
+        }
     }
 }
 
@@ -56,6 +44,21 @@ impl eframe::App for GUI {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            if ui.button("run").clicked() {
+                let (sender, receiver) = mpsc::channel();
+                self.receiver = Some(receiver);
+
+                let buffer_size = self.buffer_size;
+                let count = self.count;
+                let full = self.full;
+                let min_volume = self.min_volume;
+                std::thread::spawn(move || {
+                    autotabber::run(buffer_size, count, full, min_volume, Some(sender));
+                });
+            }
+            if ui.button("stop").clicked() {
+                self.receiver = None;
+            }
             let _response = ui.add(egui::TextEdit::multiline(&mut self.output));
         });
 
