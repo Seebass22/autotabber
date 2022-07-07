@@ -65,7 +65,6 @@ pub fn run(
         }
     };
 
-    // Build streams.
     println!(
         "Attempting to build input stream with f32 samples and `{:?}`.",
         config
@@ -75,7 +74,6 @@ pub fn run(
         .unwrap();
     println!("Successfully built streams.");
 
-    // Play the streams.
     input_stream.play().unwrap();
 
     loop {
