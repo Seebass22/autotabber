@@ -46,22 +46,24 @@ impl eframe::App for GUI {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if ui.button("run").clicked() {
-                let (sender, receiver) = mpsc::channel();
-                self.receiver = Some(receiver);
+            ui.horizontal(|ui| {
+                if ui.button("run").clicked() {
+                    let (sender, receiver) = mpsc::channel();
+                    self.receiver = Some(receiver);
 
-                let buffer_size = self.buffer_size;
-                let count = self.count;
-                let full = self.full;
-                let min_volume = self.min_volume;
-                std::thread::spawn(move || {
-                    autotabber::run(buffer_size, count, full, min_volume, Some(sender));
-                });
-            }
-            if ui.button("stop").clicked() {
-                self.receiver = None;
-            }
-            let _response = ui.add(egui::TextEdit::multiline(&mut self.output));
+                    let buffer_size = self.buffer_size;
+                    let count = self.count;
+                    let full = self.full;
+                    let min_volume = self.min_volume;
+                    std::thread::spawn(move || {
+                        autotabber::run(buffer_size, count, full, min_volume, Some(sender));
+                    });
+                }
+                if ui.button("stop").clicked() {
+                    self.receiver = None;
+                }
+            });
+            ui.add(egui::TextEdit::multiline(&mut self.output));
         });
 
         if let Some(receiver) = &self.receiver {
