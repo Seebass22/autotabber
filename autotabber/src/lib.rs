@@ -114,7 +114,7 @@ fn freq_to_midi(freq: f64) -> u8 {
 }
 
 fn is_loud_enough(buf: &[f64], min_volume: f64) -> bool {
-    let volume: f64 = buf.iter().map(|x| x.abs()).sum();
+    let volume: f64 = 100.0 * buf.iter().map(|x| x.abs()).sum::<f64>() / buf.len() as f64;
     volume > min_volume
 }
 
