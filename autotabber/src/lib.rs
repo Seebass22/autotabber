@@ -1,6 +1,7 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
+use std::collections::HashMap;
 use std::io;
 use std::io::Write;
 use std::sync::mpsc::Sender;
@@ -10,6 +11,7 @@ pub fn run(
     min_count: u8,
     full: bool,
     min_volume: f64,
+    key: String,
     sender: Option<Sender<String>>,
 ) {
     let host = cpal::default_host();
@@ -38,11 +40,11 @@ pub fn run(
             buf.push(f64::from(sample));
             if buf.len() == bufsize {
                 if full {
-                    let c = get_buffer_note(&buf, min_volume);
+                    let c = get_buffer_note(&buf, min_volume, &key);
                     send_or_print(c, &sender);
                     send_or_print(" \n", &sender);
                 } else {
-                    let c = get_buffer_note(&buf, min_volume);
+                    let c = get_buffer_note(&buf, min_volume, &key);
                     if c == previous_note {
                         count += 1;
                     } else {
@@ -90,7 +92,7 @@ fn send_or_print(data: &str, sender: &Option<Sender<String>>) {
     }
 }
 
-fn get_buffer_note(buf: &[f64], min_volume: f64) -> &'static str {
+fn get_buffer_note(buf: &[f64], min_volume: f64, key: &str) -> &'static str {
     if !is_loud_enough(buf, min_volume) {
         return "";
     }
@@ -104,7 +106,7 @@ fn get_buffer_note(buf: &[f64], min_volume: f64) -> &'static str {
     let dist = (main - second).abs() as usize;
     let freq = distance_to_frequency(dist);
     let midi = freq_to_midi(freq);
-    midi_to_tab(midi)
+    midi_to_tab(midi, key)
 }
 
 fn freq_to_midi(freq: f64) -> u8 {
@@ -156,13 +158,31 @@ fn err_fn(err: cpal::StreamError) {
     eprintln!("an error occurred on stream: {}", err);
 }
 
-fn midi_to_tab(midi: u8) -> &'static str {
+fn midi_to_tab(midi: u8, key: &str) -> &'static str {
     let notes_in_order = [
         "1", "-1'", "-1", "1o", "2", "-2''", "-2'", "-2", "-3'''", "-3''", "-3'", "-3", "4", "-4'",
         "-4", "4o", "5", "-5", "5o", "6", "-6'", "-6", "6o", "-7", "7", "-7o", "-8", "8'", "8",
         "-9", "9'", "9", "-9o", "-10", "10''", "10'", "10",
     ];
-    let index: isize = midi as isize - 60;
+    let offsets = HashMap::from([
+        ("C", 0),
+        ("G", -5),
+        ("D", 2),
+        ("A", -3),
+        ("E", 4),
+        ("B", -1),
+        ("F#", 6),
+        ("Db", 1),
+        ("Ab", -4),
+        ("Eb", 3),
+        ("Bb", -2),
+        ("F", 5),
+        ("LF", -7),
+        ("LC", -12),
+        ("LD", -10),
+        ("HG", 7),
+    ]);
+    let index: isize = midi as isize - 60 - offsets.get(key).unwrap();
     if index < 0 || index > notes_in_order.len() as isize - 1 {
         return "";
     }

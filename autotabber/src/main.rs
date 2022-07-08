@@ -18,6 +18,10 @@ struct Args {
     /// minimum volume to detect notes
     #[clap(short, long, value_parser, default_value_t = 0.6)]
     min_volume: f64,
+
+    /// harmonica key
+    #[clap(short, long, value_parser, default_value_t = String::from("C"))]
+    key: String,
 }
 
 fn main() {
@@ -27,6 +31,7 @@ fn main() {
         args.count,
         args.full,
         args.min_volume,
+        args.key,
         None,
     );
 }
