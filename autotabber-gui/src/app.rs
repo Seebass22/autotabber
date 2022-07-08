@@ -8,6 +8,7 @@ pub struct GUI {
     buffer_size: usize,
     min_volume: f64,
     output: String,
+    key: String,
     receiver: Option<Receiver<String>>,
 }
 
@@ -19,6 +20,7 @@ impl Default for GUI {
             buffer_size: 512,
             min_volume: 0.6,
             output: "".to_string(),
+            key: "C".to_string(),
             receiver: None,
         }
     }
@@ -55,14 +57,29 @@ impl eframe::App for GUI {
                     let count = self.count;
                     let full = self.full;
                     let min_volume = self.min_volume;
+                    let key = self.key.clone();
                     std::thread::spawn(move || {
-                        autotabber::run(buffer_size, count, full, min_volume, Some(sender));
+                        autotabber::run(buffer_size, count, full, min_volume, key, Some(sender));
                     });
                 }
                 if ui.button("stop").clicked() {
                     self.receiver = None;
                 }
             });
+
+            egui::ComboBox::from_label("key")
+                .selected_text(&self.key)
+                .width(60.0)
+                .show_ui(ui, |ui| {
+                    for key in [
+                        "C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F", "LF",
+                        "LC", "LD", "HG",
+                    ]
+                    .iter()
+                    {
+                        ui.selectable_value(&mut self.key, key.to_string(), *key);
+                    }
+                });
 
             ui.horizontal(|ui| {
                 ui.label("buffer size:");
