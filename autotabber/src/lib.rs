@@ -40,11 +40,11 @@ pub fn run(
             buf.push(f64::from(sample));
             if buf.len() == bufsize {
                 if full {
-                    let c = get_buffer_note(&buf, min_volume, &key);
+                    let c = get_buffer_note(&buf, min_volume, config.sample_rate.0, &key);
                     send_or_print(c, &sender);
                     send_or_print(" \n", &sender);
                 } else {
-                    let c = get_buffer_note(&buf, min_volume, &key);
+                    let c = get_buffer_note(&buf, min_volume, config.sample_rate.0, &key);
                     if c == previous_note {
                         count += 1;
                     } else {
@@ -92,7 +92,7 @@ fn send_or_print(data: &str, sender: &Option<Sender<String>>) {
     }
 }
 
-fn get_buffer_note(buf: &[f64], min_volume: f64, key: &str) -> &'static str {
+fn get_buffer_note(buf: &[f64], min_volume: f64, sample_rate: u32, key: &str) -> &'static str {
     if !is_loud_enough(buf, min_volume) {
         return "";
     }
@@ -104,7 +104,7 @@ fn get_buffer_note(buf: &[f64], min_volume: f64, key: &str) -> &'static str {
     let main = ps[0].middle_position() as isize;
     let second = ps[1].middle_position() as isize;
     let dist = (main - second).abs() as usize;
-    let freq = distance_to_frequency(dist);
+    let freq = distance_to_frequency(dist, sample_rate);
     let midi = freq_to_midi(freq);
     midi_to_tab(midi, key)
 }
@@ -118,8 +118,8 @@ fn is_loud_enough(buf: &[f64], min_volume: f64) -> bool {
     volume > min_volume
 }
 
-fn distance_to_frequency(dist: usize) -> f64 {
-    44100.0 / dist as f64
+fn distance_to_frequency(dist: usize, sample_rate: u32) -> f64 {
+    sample_rate as f64 / dist as f64
 }
 
 fn autocorrelation(signal: &[f64]) -> Vec<f64> {
