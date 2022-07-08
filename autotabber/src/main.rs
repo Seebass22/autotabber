@@ -16,7 +16,7 @@ struct Args {
     buffer_size: usize,
 
     /// minimum volume to detect notes
-    #[clap(short, long, value_parser, default_value_t = 0.6)]
+    #[clap(short, long, value_parser, default_value_t = 0.12)]
     min_volume: f64,
 
     /// harmonica key

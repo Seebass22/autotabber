@@ -18,7 +18,7 @@ impl Default for GUI {
             full: false,
             count: 4,
             buffer_size: 512,
-            min_volume: 0.6,
+            min_volume: 0.12,
             output: "".to_string(),
             key: "C".to_string(),
             receiver: None,
