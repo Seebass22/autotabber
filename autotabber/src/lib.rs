@@ -6,6 +6,58 @@ use std::io;
 use std::io::Write;
 use std::sync::mpsc::Sender;
 
+pub fn measure_volume(sender: Option<Sender<String>>) {
+    let host = cpal::default_host();
+    let input_device = host
+        .default_input_device()
+        .expect("failed to find input device");
+
+    let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
+
+
+    let mut buf = Vec::<f64>::with_capacity(512);
+    let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
+        let mut skip = true;
+        for &sample in data {
+            skip = !skip;
+            // only use first channel of input
+            // skip every 2nd sample
+            if skip {
+                continue;
+            }
+
+            buf.push(f64::from(sample));
+            if buf.len() == 512 {
+                let volume = calculate_volume(&buf);
+                send_or_print(&volume.to_string(), &sender);
+                if sender.is_none() {
+                    println!();
+                }
+                buf.clear();
+            }
+        }
+    };
+
+    println!(
+        "Attempting to build input stream with f32 samples and `{:?}`.",
+        config
+    );
+    let input_stream = input_device
+        .build_input_stream(&config, input_data_fn, err_fn)
+        .unwrap();
+    println!("Successfully built streams.");
+
+    input_stream.play().unwrap();
+
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(10));
+    }
+}
+
+fn calculate_volume(buf: &[f64]) -> f64 {
+    100.0 * buf.iter().map(|x| x.abs()).sum::<f64>() / buf.len() as f64
+}
+
 pub fn run(
     bufsize: usize,
     min_count: u8,
@@ -114,7 +166,7 @@ fn freq_to_midi(freq: f64) -> u8 {
 }
 
 fn is_loud_enough(buf: &[f64], min_volume: f64) -> bool {
-    let volume: f64 = 100.0 * buf.iter().map(|x| x.abs()).sum::<f64>() / buf.len() as f64;
+    let volume = calculate_volume(buf);
     volume > min_volume
 }
 

@@ -8,6 +8,10 @@ struct Args {
     #[clap(long, action, default_value_t = false)]
     full: bool,
 
+    /// measure volume (to set --min-volume)
+    #[clap(long, action, default_value_t = false)]
+    measure_volume: bool,
+
     /// number of occurences required to print note
     #[clap(short, long, value_parser, default_value_t = 4)]
     count: u8,
@@ -32,6 +36,9 @@ fn main() {
     if !keys.iter().any(|k| k == &args.key) {
         eprintln!("invalid key. available keys: {:?}", keys);
         std::process::exit(-1);
+    }
+    if args.measure_volume {
+        measure_volume(None);
     }
     run(
         args.buffer_size,
