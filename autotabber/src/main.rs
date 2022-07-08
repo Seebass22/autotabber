@@ -26,6 +26,13 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+    let keys = [
+        "C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F", "LF", "LC", "LD", "HG",
+    ];
+    if !keys.iter().any(|k| k == &args.key) {
+        eprintln!("invalid key. available keys: {:?}", keys);
+        std::process::exit(-1);
+    }
     run(
         args.buffer_size,
         args.count,
