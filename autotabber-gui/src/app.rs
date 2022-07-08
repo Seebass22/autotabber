@@ -10,6 +10,8 @@ pub struct GUI {
     output: String,
     key: String,
     receiver: Option<Receiver<String>>,
+    measured_volume: String,
+    volume_receiver: Option<Receiver<String>>,
 }
 
 impl Default for GUI {
@@ -22,6 +24,8 @@ impl Default for GUI {
             output: "".to_string(),
             key: "C".to_string(),
             receiver: None,
+            measured_volume: "".to_string(),
+            volume_receiver: None,
         }
     }
 }
@@ -91,6 +95,18 @@ impl eframe::App for GUI {
 
             ui.add(egui::Slider::new(&mut self.count, 1..=20).text("MinOccurs"));
             ui.add(egui::Slider::new(&mut self.min_volume, 0.0..=1.0).text("MinVolume"));
+            ui.horizontal(|ui| {
+                if ui.button("measure volume").clicked() {
+                    if self.volume_receiver.is_none() {
+                        let (sender, receiver) = mpsc::channel();
+                        self.volume_receiver = Some(receiver);
+                        std::thread::spawn(move || autotabber::measure_volume(Some(sender)));
+                    } else {
+                        self.volume_receiver = None;
+                    }
+                }
+                ui.label(&self.measured_volume);
+            });
 
             ui.add(egui::TextEdit::multiline(&mut self.output));
         });
@@ -99,6 +115,14 @@ impl eframe::App for GUI {
             match receiver.try_recv() {
                 Ok(data) => {
                     self.output.push_str(&data);
+                }
+                Err(_err) => (),
+            }
+        }
+        if let Some(volume_receiver) = &self.volume_receiver {
+            match volume_receiver.try_recv() {
+                Ok(data) => {
+                    self.measured_volume = data;
                 }
                 Err(_err) => (),
             }
