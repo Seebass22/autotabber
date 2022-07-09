@@ -1,7 +1,6 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
-use std::collections::HashMap;
 use std::io;
 use std::io::Write;
 use std::sync::mpsc::Sender;
@@ -216,25 +215,26 @@ fn midi_to_tab(midi: u8, key: &str) -> &'static str {
         "-4", "4o", "5", "-5", "5o", "6", "-6'", "-6", "6o", "-7", "7", "-7o", "-8", "8'", "8",
         "-9", "9'", "9", "-9o", "-10", "10''", "10'", "10",
     ];
-    let offsets = HashMap::from([
-        ("C", 0),
-        ("G", -5),
-        ("D", 2),
-        ("A", -3),
-        ("E", 4),
-        ("B", -1),
-        ("F#", 6),
-        ("Db", 1),
-        ("Ab", -4),
-        ("Eb", 3),
-        ("Bb", -2),
-        ("F", 5),
-        ("LF", -7),
-        ("LC", -12),
-        ("LD", -10),
-        ("HG", 7),
-    ]);
-    let index: isize = midi as isize - 60 - offsets.get(key).unwrap();
+    let offset = match key {
+        "C" => 0,
+        "G" => -5,
+        "D" => 2,
+        "A" => -3,
+        "E" => 4,
+        "B" => -1,
+        "F#" => 6,
+        "Db" => 1,
+        "Ab" => -4,
+        "Eb" => 3,
+        "Bb" => -2,
+        "F" => 5,
+        "LF" => -7,
+        "LC" => -12,
+        "LD" => -10,
+        "HG" => 7,
+        _ => {panic!()},
+    };
+    let index: isize = midi as isize - 60 - offset;
     if index < 0 || index > notes_in_order.len() as isize - 1 {
         return "";
     }
