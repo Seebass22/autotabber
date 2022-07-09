@@ -85,27 +85,29 @@ impl eframe::App for GUI {
                     }
                 });
 
-            ui.horizontal(|ui| {
-                ui.label("buffer size:");
-                let buffer_sizes: [usize; 5] = [256, 512, 1024, 2048, 4096];
-                for value in buffer_sizes.iter() {
-                    ui.selectable_value(&mut self.buffer_size, *value, value.to_string());
-                }
-            });
-
-            ui.add(egui::Slider::new(&mut self.count, 1..=20).text("MinOccurs"));
-            ui.add(egui::Slider::new(&mut self.min_volume, 0.0..=1.0).text("MinVolume"));
-            ui.horizontal(|ui| {
-                if ui.button("measure volume").clicked() {
-                    if self.volume_receiver.is_none() {
-                        let (sender, receiver) = mpsc::channel();
-                        self.volume_receiver = Some(receiver);
-                        std::thread::spawn(move || autotabber::measure_volume(Some(sender)));
-                    } else {
-                        self.volume_receiver = None;
+            ui.collapsing("settings", |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("buffer size:");
+                    let buffer_sizes: [usize; 5] = [256, 512, 1024, 2048, 4096];
+                    for value in buffer_sizes.iter() {
+                        ui.selectable_value(&mut self.buffer_size, *value, value.to_string());
                     }
-                }
-                ui.label(&self.measured_volume);
+                });
+
+                ui.add(egui::Slider::new(&mut self.count, 1..=20).text("MinOccurs"));
+                ui.add(egui::Slider::new(&mut self.min_volume, 0.0..=1.0).text("MinVolume"));
+                ui.horizontal(|ui| {
+                    if ui.button("measure volume").clicked() {
+                        if self.volume_receiver.is_none() {
+                            let (sender, receiver) = mpsc::channel();
+                            self.volume_receiver = Some(receiver);
+                            std::thread::spawn(move || autotabber::measure_volume(Some(sender)));
+                        } else {
+                            self.volume_receiver = None;
+                        }
+                    }
+                    ui.label(&self.measured_volume);
+                });
             });
 
             ui.add_sized(
