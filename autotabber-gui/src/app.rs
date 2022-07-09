@@ -108,7 +108,10 @@ impl eframe::App for GUI {
                 ui.label(&self.measured_volume);
             });
 
-            ui.add(egui::TextEdit::multiline(&mut self.output));
+            ui.add_sized(
+                ui.available_size(),
+                egui::TextEdit::multiline(&mut self.output),
+            );
         });
 
         if let Some(receiver) = &self.receiver {
