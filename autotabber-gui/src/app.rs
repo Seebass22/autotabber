@@ -12,6 +12,7 @@ pub struct GUI {
     receiver: Option<Receiver<String>>,
     measured_volume: String,
     volume_receiver: Option<Receiver<String>>,
+    print_key: bool,
 }
 
 impl Default for GUI {
@@ -26,6 +27,7 @@ impl Default for GUI {
             receiver: None,
             measured_volume: "".to_string(),
             volume_receiver: None,
+            print_key: false,
         }
     }
 }
@@ -62,6 +64,15 @@ impl eframe::App for GUI {
                     let full = self.full;
                     let min_volume = self.min_volume;
                     let key = self.key.clone();
+
+                    if self.print_key {
+                        if ! self.output.is_empty() {
+                            self.output.push('\n');
+                        }
+                        self.output.push_str(&self.key);
+                        self.output.push_str(" harp:\n");
+                    }
+
                     std::thread::spawn(move || {
                         autotabber::run(buffer_size, count, full, min_volume, key, Some(sender));
                     });
@@ -71,19 +82,23 @@ impl eframe::App for GUI {
                 }
             });
 
-            egui::ComboBox::from_label("key")
-                .selected_text(&self.key)
-                .width(60.0)
-                .show_ui(ui, |ui| {
-                    for key in [
-                        "C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F", "LF",
-                        "LC", "LD", "HG",
-                    ]
-                    .iter()
-                    {
-                        ui.selectable_value(&mut self.key, key.to_string(), *key);
-                    }
-                });
+            ui.horizontal(|ui| {
+                egui::ComboBox::from_label("key")
+                    .selected_text(&self.key)
+                    .width(60.0)
+                    .show_ui(ui, |ui| {
+                        for key in [
+                            "C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F", "LF",
+                            "LC", "LD", "HG",
+                        ]
+                        .iter()
+                        {
+                            ui.selectable_value(&mut self.key, key.to_string(), *key);
+                        }
+                    });
+                ui.add_space(10.0);
+                ui.checkbox(&mut self.print_key, "print key");
+            });
 
             ui.collapsing("settings", |ui| {
                 ui.horizontal(|ui| {
