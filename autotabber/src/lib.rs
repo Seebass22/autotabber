@@ -147,8 +147,9 @@ fn get_buffer_note(buf: &[f64], min_volume: f64, sample_rate: u32, key: &str) ->
     if !is_loud_enough(buf, min_volume) {
         return "";
     }
-    let autoc = autocorrelation(buf);
-    let ps = PeakFinder::new(&autoc).find_peaks();
+
+    let snac = snac(buf);
+    let ps = PeakFinder::new(&snac).find_peaks();
     if ps.len() < 2 {
         return "";
     }
@@ -158,6 +159,32 @@ fn get_buffer_note(buf: &[f64], min_volume: f64, sample_rate: u32, key: &str) ->
     let freq = distance_to_frequency(dist, sample_rate);
     let midi = freq_to_midi(freq);
     midi_to_tab(midi, key)
+}
+
+fn snac(buf: &[f64]) -> Vec<f64> {
+    let fftsize = buf.len() * 2;
+    let normalized: Vec<f64> = buf
+        .iter()
+        .map(|x| *x * 1.0 / (fftsize as f64).sqrt())
+        .collect();
+
+    let autoc = autocorrelation(&normalized);
+
+    let mut buf_padded = Vec::from(buf);
+    buf_padded.resize(fftsize, 0.0);
+
+    let mut norm: Vec<f64> = Vec::with_capacity(fftsize);
+    let mut snac: Vec<f64> = Vec::with_capacity(fftsize);
+    norm.push(2.0 * autoc[0]);
+
+    for i in 1..fftsize {
+        norm.push(norm[i - 1] - (buf_padded[i].powf(2.0) + buf_padded[i - 1].powf(2.0)));
+    }
+    for i in 0..fftsize {
+        snac.push(2.0 * autoc[i] / norm[i]);
+    }
+
+    snac
 }
 
 fn freq_to_midi(freq: f64) -> u8 {
@@ -232,7 +259,9 @@ fn midi_to_tab(midi: u8, key: &str) -> &'static str {
         "LC" => -12,
         "LD" => -10,
         "HG" => 7,
-        _ => {panic!()},
+        _ => {
+            panic!()
+        }
     };
     let index: isize = midi as isize - 60 - offset;
     if index < 0 || index > notes_in_order.len() as isize - 1 {
