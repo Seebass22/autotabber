@@ -13,6 +13,7 @@ pub struct GUI {
     measured_volume: String,
     volume_receiver: Option<Receiver<String>>,
     print_key: bool,
+    about_open: bool,
 }
 
 impl Default for GUI {
@@ -28,6 +29,7 @@ impl Default for GUI {
             measured_volume: "".to_string(),
             volume_receiver: None,
             print_key: false,
+            about_open: false,
         }
     }
 }
@@ -37,6 +39,28 @@ impl GUI {
         // don't print error message on panic (thread exit)
         std::panic::set_hook(Box::new(|_| {}));
         Default::default()
+    }
+
+    fn about_window(&mut self, ctx: &egui::Context) {
+        egui::Window::new("About")
+            .collapsible(false)
+            .resizable(false)
+            .open(&mut self.about_open)
+            .show(ctx, |ui| {
+                ui.label("autotabber-gui");
+                ui.add_space(10.0);
+                ui.label("Copyright © 2022");
+                ui.label("Sebastian James Thuemmel");
+                ui.add_space(10.0);
+                ui.add(egui::Hyperlink::from_label_and_url(
+                    "source code",
+                    "https://github.com/Seebass22/autotabber",
+                ));
+                ui.add(egui::Hyperlink::from_label_and_url(
+                    "binary downloads",
+                    "https://seebass22.itch.io/autotabber",
+                ));
+            });
     }
 }
 
@@ -50,6 +74,10 @@ impl eframe::App for GUI {
                         frame.quit();
                     }
                 });
+
+                if ui.button("About").clicked() {
+                    self.about_open = true;
+                }
             });
         });
 
@@ -147,6 +175,7 @@ impl eframe::App for GUI {
                 Err(_err) => (),
             }
         }
+        self.about_window(ctx);
         ctx.request_repaint();
     }
 }
