@@ -118,14 +118,9 @@ pub fn run(
         }
     };
 
-    println!(
-        "Attempting to build input stream with f32 samples and `{:?}`.",
-        config
-    );
     let input_stream = input_device
         .build_input_stream(&config, input_data_fn, err_fn)
         .unwrap();
-    println!("Successfully built streams.");
 
     input_stream.play().unwrap();
 
