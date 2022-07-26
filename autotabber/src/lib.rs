@@ -13,7 +13,6 @@ pub fn measure_volume(sender: Option<Sender<String>>) {
 
     let config: cpal::StreamConfig = input_device.default_input_config().unwrap().into();
 
-
     let mut buf = Vec::<f64>::with_capacity(512);
     let input_data_fn = move |data: &[f32], _: &cpal::InputCallbackInfo| {
         let mut skip = true;
@@ -227,7 +226,9 @@ fn midi_to_tab(midi: u8, key: &str) -> &'static str {
         "LC" => -12,
         "LD" => -10,
         "HG" => 7,
-        _ => {panic!()},
+        _ => {
+            panic!()
+        }
     };
     let index: isize = midi as isize - 60 - offset;
     if index < 0 || index > notes_in_order.len() as isize - 1 {
