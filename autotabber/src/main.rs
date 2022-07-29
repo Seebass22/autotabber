@@ -1,5 +1,8 @@
 use autotabber::*;
 use clap::Parser;
+use std::io;
+use std::io::Write;
+use std::sync::mpsc;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -37,15 +40,33 @@ fn main() {
         eprintln!("invalid key. available keys: {:?}", keys);
         std::process::exit(-1);
     }
+
+    let (sender, receiver) = mpsc::channel();
+
     if args.measure_volume {
-        measure_volume(None);
+        std::thread::spawn(move || {
+            measure_volume(sender);
+        });
+    } else {
+        std::thread::spawn(move || {
+            run(
+                args.buffer_size,
+                args.count,
+                args.full,
+                args.min_volume,
+                args.key,
+                sender,
+            );
+        });
     }
-    run(
-        args.buffer_size,
-        args.count,
-        args.full,
-        args.min_volume,
-        args.key,
-        None,
-    );
+
+    loop {
+        match receiver.try_recv() {
+            Ok(data) => {
+                print!("{}", data);
+                io::stdout().flush().unwrap();
+            }
+            Err(_err) => (),
+        }
+    }
 }

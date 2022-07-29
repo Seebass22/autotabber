@@ -1,11 +1,9 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
-use std::io;
-use std::io::Write;
 use std::sync::mpsc::Sender;
 
-pub fn measure_volume(sender: Option<Sender<String>>) {
+pub fn measure_volume(sender: Sender<String>) {
     let host = cpal::default_host();
     let input_device = host
         .default_input_device()
@@ -27,10 +25,7 @@ pub fn measure_volume(sender: Option<Sender<String>>) {
             buf.push(f64::from(sample));
             if buf.len() == 512 {
                 let volume = calculate_volume(&buf);
-                send_or_print(&volume.to_string(), &sender);
-                if sender.is_none() {
-                    println!();
-                }
+                sender.send(format!("{}\n", volume)).unwrap();
                 buf.clear();
             }
         }
@@ -62,7 +57,7 @@ pub fn run(
     full: bool,
     min_volume: f64,
     key: String,
-    sender: Option<Sender<String>>,
+    sender: Sender<String>,
 ) {
     let host = cpal::default_host();
     let input_device = host
@@ -91,8 +86,7 @@ pub fn run(
             if buf.len() == bufsize {
                 if full {
                     let c = get_buffer_note(&buf, min_volume, config.sample_rate.0, &key);
-                    send_or_print(c, &sender);
-                    send_or_print(" \n", &sender);
+                    sender.send(format!("{}\n", c)).unwrap();
                 } else {
                     let c = get_buffer_note(&buf, min_volume, config.sample_rate.0, &key);
                     if c == previous_note {
@@ -101,13 +95,11 @@ pub fn run(
                         count = 1
                     }
                     if count == min_count && !c.is_empty() {
-                        send_or_print(c, &sender);
-                        send_or_print(" ", &sender);
-                        io::stdout().flush().unwrap();
+                        sender.send(format!("{} ", c)).unwrap();
                         notes_printed += 1;
                         if notes_printed == 20 {
                             notes_printed = 0;
-                            send_or_print("\n", &sender);
+                            sender.send("\n".to_string()).unwrap();
                         }
                     }
                     previous_note = c;
@@ -125,15 +117,6 @@ pub fn run(
 
     loop {
         std::thread::sleep(std::time::Duration::from_secs(10));
-    }
-}
-
-fn send_or_print(data: &str, sender: &Option<Sender<String>>) {
-    if let Some(sender) = sender {
-        // panic (exit) thread if there is no receiver
-        sender.send(data.to_string()).unwrap();
-    } else {
-        print!("{}", data);
     }
 }
 

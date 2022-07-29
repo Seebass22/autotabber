@@ -94,7 +94,7 @@ impl eframe::App for GUI {
                     let key = self.key.clone();
 
                     if self.print_key {
-                        if ! self.output.is_empty() {
+                        if !self.output.is_empty() {
                             self.output.push('\n');
                         }
                         self.output.push_str(&self.key);
@@ -102,7 +102,7 @@ impl eframe::App for GUI {
                     }
 
                     std::thread::spawn(move || {
-                        autotabber::run(buffer_size, count, full, min_volume, key, Some(sender));
+                        autotabber::run(buffer_size, count, full, min_volume, key, sender);
                     });
                 }
                 if ui.button("stop").clicked() {
@@ -144,7 +144,7 @@ impl eframe::App for GUI {
                         if self.volume_receiver.is_none() {
                             let (sender, receiver) = mpsc::channel();
                             self.volume_receiver = Some(receiver);
-                            std::thread::spawn(move || autotabber::measure_volume(Some(sender)));
+                            std::thread::spawn(move || autotabber::measure_volume(sender));
                         } else {
                             self.volume_receiver = None;
                         }
