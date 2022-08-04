@@ -19,8 +19,9 @@ struct Args {
     #[clap(short, long, value_parser, default_value_t = 4)]
     count: u8,
 
+    /// size of the window (in samples) used for pitch detection
     #[clap(short, long, value_parser, default_value_t = 512)]
-    buffer_size: usize,
+    window_size: usize,
 
     /// minimum volume to detect notes
     #[clap(short, long, value_parser, default_value_t = 0.12)]
@@ -50,7 +51,7 @@ fn main() {
     } else {
         std::thread::spawn(move || {
             run(
-                args.buffer_size,
+                args.window_size,
                 args.count,
                 args.full,
                 args.min_volume,

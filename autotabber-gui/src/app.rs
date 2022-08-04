@@ -130,7 +130,7 @@ impl eframe::App for GUI {
 
             ui.collapsing("settings", |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("buffer size:");
+                    ui.label("window size:");
                     let buffer_sizes: [usize; 5] = [256, 512, 1024, 2048, 4096];
                     for value in buffer_sizes.iter() {
                         ui.selectable_value(&mut self.buffer_size, *value, value.to_string());
