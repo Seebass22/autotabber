@@ -47,7 +47,7 @@ impl GUI {
             .resizable(false)
             .open(&mut self.about_open)
             .show(ctx, |ui| {
-                ui.label("autotabber-gui");
+                ui.label("autotabber");
                 ui.add_space(10.0);
                 ui.label("Copyright © 2022");
                 ui.label("Sebastian James Thuemmel");
