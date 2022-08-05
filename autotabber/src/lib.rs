@@ -68,7 +68,7 @@ pub fn run(
 
     let mut buf = Vec::<f64>::with_capacity(bufsize);
 
-    let mut previous_note = "";
+    let mut previous_note: Box<&'static str> = Box::new("");
     let mut count = 0;
     let mut notes_printed = 0;
 
@@ -88,21 +88,15 @@ pub fn run(
                     let c = get_buffer_note(&buf, min_volume, config.sample_rate.0, &key);
                     sender.send(format!("{}\n", c)).unwrap();
                 } else {
-                    let c = get_buffer_note(&buf, min_volume, config.sample_rate.0, &key);
-                    if c == previous_note {
-                        count += 1;
-                    } else {
-                        count = 1
-                    }
-                    if count == min_count && !c.is_empty() {
-                        sender.send(format!("{} ", c)).unwrap();
-                        notes_printed += 1;
-                        if notes_printed == 20 {
-                            notes_printed = 0;
-                            sender.send("\n".to_string()).unwrap();
-                        }
-                    }
-                    previous_note = c;
+                    let note = get_buffer_note(&buf, min_volume, config.sample_rate.0, &key);
+                    handle_note(
+                        note,
+                        &mut previous_note,
+                        &mut count,
+                        min_count,
+                        &mut notes_printed,
+                        &sender,
+                    );
                 }
                 buf.clear();
             }
@@ -118,6 +112,30 @@ pub fn run(
     loop {
         std::thread::sleep(std::time::Duration::from_secs(10));
     }
+}
+
+fn handle_note(
+    note: &'static str,
+    previous_note: &mut Box<&'static str>,
+    count: &mut u32,
+    min_count: u8,
+    notes_printed: &mut u32,
+    sender: &Sender<String>,
+) {
+    if note == **previous_note {
+        *count += 1;
+    } else {
+        *count = 1
+    }
+    if *count == min_count as u32 && !note.is_empty() {
+        sender.send(format!("{} ", note)).unwrap();
+        *notes_printed += 1;
+        if *notes_printed == 20 {
+            *notes_printed = 0;
+            sender.send("\n".to_string()).unwrap();
+        }
+    }
+    **previous_note = note;
 }
 
 fn get_buffer_note(buf: &[f64], min_volume: f64, sample_rate: u32, key: &str) -> &'static str {
