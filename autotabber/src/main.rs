@@ -30,6 +30,10 @@ struct Args {
     /// harmonica key
     #[clap(short, long, value_parser, default_value_t = String::from("C"))]
     key: String,
+
+    /// read from WAV file instead of microphone
+    #[clap(short)]
+    input: Option<String>,
 }
 
 fn main() {
@@ -48,6 +52,17 @@ fn main() {
         std::thread::spawn(move || {
             measure_volume(sender);
         });
+    } else if let Some(input) = args.input {
+        std::thread::spawn(move || {
+            run_wav(
+                input,
+                args.window_size,
+                args.count,
+                args.min_volume,
+                args.key,
+                sender,
+            );
+        });
     } else {
         std::thread::spawn(move || {
             run(
@@ -62,12 +77,14 @@ fn main() {
     }
 
     loop {
-        match receiver.try_recv() {
+        match receiver.recv() {
             Ok(data) => {
                 print!("{}", data);
                 io::stdout().flush().unwrap();
             }
-            Err(_err) => (),
+            Err(_err) => {
+                break;
+            },
         }
     }
 }

@@ -1,6 +1,7 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use find_peaks::PeakFinder;
 use realfft::RealFftPlanner;
+use std::io;
 use std::sync::mpsc::Sender;
 
 pub fn measure_volume(sender: Sender<String>) {
@@ -49,6 +50,59 @@ pub fn measure_volume(sender: Sender<String>) {
 
 fn calculate_volume(buf: &[f64]) -> f64 {
     100.0 * buf.iter().map(|x| x.abs()).sum::<f64>() / buf.len() as f64
+}
+
+pub fn run_wav(
+    input: String,
+    bufsize: usize,
+    min_count: u8,
+    min_volume: f64,
+    key: String,
+    sender: Sender<String>,
+) {
+    let mut reader = hound::WavReader::open(&input).unwrap();
+    match reader.spec().sample_format {
+        hound::SampleFormat::Float => {
+            _run_wav::<f32, _>(&mut reader, bufsize, min_count, min_volume, &key, sender)
+        }
+        hound::SampleFormat::Int => {
+            _run_wav::<i32, _>(&mut reader, bufsize, min_count, min_volume, &key, sender)
+        }
+    };
+}
+
+fn _run_wav<S, R>(
+    reader: &mut hound::WavReader<R>,
+    bufsize: usize,
+    min_count: u8,
+    min_volume: f64,
+    key: &str,
+    sender: Sender<String>,
+) where
+    f64: From<S>,
+    S: hound::Sample,
+    R: io::Read,
+{
+    let mut previous_note: Box<&'static str> = Box::new("");
+    let mut count = 0;
+    let mut notes_printed = 0;
+
+    let mut buf = Vec::<f64>::with_capacity(bufsize);
+    for sample in reader.samples::<S>().flatten() {
+        buf.push(f64::from(sample));
+        if buf.len() == bufsize {
+            let note = get_buffer_note(&buf, min_volume, 44100, key);
+            handle_note(
+                note,
+                &mut previous_note,
+                &mut count,
+                min_count,
+                &mut notes_printed,
+                &sender,
+            );
+            buf.clear();
+        }
+    }
 }
 
 pub fn run(
