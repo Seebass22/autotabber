@@ -4,6 +4,7 @@ use realfft::RealFftPlanner;
 use std::io;
 use std::sync::mpsc::Sender;
 
+/// measures volume of mic input, sending result to channel sender
 pub fn measure_volume(sender: Sender<String>) {
     let host = cpal::default_host();
     let input_device = host
@@ -52,6 +53,7 @@ fn calculate_volume(buf: &[f64]) -> f64 {
     100.0 * buf.iter().map(|x| x.abs()).sum::<f64>() / buf.len() as f64
 }
 
+/// reads in WAV file, detects pitch and sends harmonica tab output to channel sender
 pub fn run_wav(
     input: String,
     bufsize: usize,
@@ -105,6 +107,7 @@ fn _run_wav<S, R>(
     }
 }
 
+/// gets input from microphone, detects pitch and send harmonica tab output to channel sender
 pub fn run(
     bufsize: usize,
     min_count: u8,
@@ -139,6 +142,7 @@ pub fn run(
             buf.push(f64::from(sample));
             if buf.len() == bufsize {
                 if full {
+                    // always print note
                     let c = get_buffer_note(&buf, min_volume, config.sample_rate.0, &key);
                     sender.send(format!("{}\n", c)).unwrap();
                 } else {
@@ -168,6 +172,8 @@ pub fn run(
     }
 }
 
+// decides whether to pass note on to channel sender or discard note, depending on previous notes
+// sends a newline after 20 notes
 fn handle_note(
     note: &'static str,
     previous_note: &mut &'static str,
@@ -192,6 +198,7 @@ fn handle_note(
     *previous_note = note;
 }
 
+// determines pitch of buffer, returns harmonica tab
 fn get_buffer_note(buf: &[f64], min_volume: f64, sample_rate: u32, key: &str) -> &'static str {
     if !is_loud_enough(buf, min_volume) {
         return "";
@@ -229,7 +236,7 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
     // make a planner
     let mut real_planner = RealFftPlanner::<f64>::new();
 
-    // create a FFT
+    // create an FFT
     let r2c = real_planner.plan_fft_forward(length);
 
     let mut indata = signal.to_owned();
@@ -237,7 +244,7 @@ fn autocorrelation(signal: &[f64]) -> Vec<f64> {
     indata.resize(bufsize * 2, 0f64);
     let mut spectrum = r2c.make_output_vec();
 
-    // Forward transform the input data
+    // forward transform the input data
     r2c.process(&mut indata, &mut spectrum).unwrap();
     for c in spectrum.iter_mut() {
         *c *= c.conj();
@@ -258,6 +265,8 @@ fn err_fn(err: cpal::StreamError) {
     eprintln!("an error occurred on stream: {}", err);
 }
 
+// returns harmonica tab notation for a given midi note and harmonica key
+// returns empty string if note doesn't exist on harmonica
 fn midi_to_tab(midi: u8, key: &str) -> &'static str {
     let notes_in_order = [
         "1", "-1'", "-1", "1o", "2", "-2''", "-2'", "-2", "-3'''", "-3''", "-3'", "-3", "4", "-4'",
