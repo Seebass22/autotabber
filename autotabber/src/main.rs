@@ -77,14 +77,9 @@ fn main() {
     }
 
     loop {
-        match receiver.recv() {
-            Ok(data) => {
-                print!("{}", data);
-                io::stdout().flush().unwrap();
-            }
-            Err(_err) => {
-                break;
-            },
+        while let Ok(data) = receiver.recv() {
+            print!("{}", data);
+            io::stdout().flush().unwrap();
         }
     }
 }
